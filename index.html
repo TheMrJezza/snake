@@ -83,11 +83,24 @@
     let poX = Math.floor(tilesSQ / 2);
     let poY = Math.floor(tilesSQ / 2);
 
-    let food = {x: Math.floor(Math.random() * tilesSQ), y: Math.floor(Math.random() * tilesSQ)};
+    let food = {x: 0, y: 0};
     let lock = false;
     let tick = -1;
 
     let frame;
+
+    function setFoodPos() {
+        let nextFood = {x: Math.floor(Math.random() * tilesSQ), y: Math.floor(Math.random() * tilesSQ)};
+        while (true) {
+            let found = history.find(element => element.x === nextFood.x && element.y === nextFood.y);
+            while (found) {
+                nextFood = {x: Math.floor(Math.random() * tilesSQ), y: Math.floor(Math.random() * tilesSQ)};
+                found = history.find(element => element.x === nextFood.x && element.y === nextFood.y);
+            }
+            if (nextFood.x !== food.x || nextFood.y !== food.y) break;
+        }
+        food = nextFood;
+    }
 
     function reset() {
         window.cancelAnimationFrame(frame);
@@ -113,11 +126,10 @@
         ctx.stroke();
     }
 
-
     function draw(time) {
         let speed = 200 - (150 * (speedSlider.value / 100));
         let now = Math.floor(time / speed);
-        if (now !== tick && !lock) {
+        if (now !== tick && !lock && document.hasFocus()) {
             tick = now;
             history.unshift({x: poX, y: poY});
 
@@ -166,7 +178,7 @@
             fillSquare(poX, poY);
 
             if (food.x === poX && food.y === poY) {
-                food = {x: Math.floor(Math.random() * tilesSQ), y: Math.floor(Math.random() * tilesSQ)};
+                setFoodPos();
                 scoreDisplay.textContent = `${parseInt(scoreDisplay.textContent) + 1}`;
                 maxLength++;
             }
@@ -179,12 +191,15 @@
 
     document.addEventListener('keydown', (keyboardEvent) => {
         let nextDirection;
+
+        //console.log(tick + " : " + keyboardEvent.key);
+
         if (keyboardEvent.key === "ArrowUp") nextDirection = "NORTH";
         else if (keyboardEvent.key === "ArrowDown") nextDirection = "SOUTH";
         else if (keyboardEvent.key === "ArrowLeft") nextDirection = "WEST";
         else if (keyboardEvent.key === "ArrowRight") nextDirection = "EAST";
         else return;
-        if (nextDirection !== requestedDirection) requestedDirection = nextDirection;
+        if (nextDirection !== requestedDirection && nextDirection !== consumedDirection) requestedDirection = nextDirection;
     });
 
     speedSlider.addEventListener("mousedown", () => {
@@ -196,10 +211,14 @@
         speedSlider.blur();
     });
 
+    setFoodPos();
     frame = window.requestAnimationFrame(draw);
     document.querySelector('button').addEventListener('click', (event) => {
         reset();
         event.target.blur();
+    });
+    document.addEventListener('visibilitychange', () => {
+        lock = document.hidden;
     });
 </script>
 </html>
