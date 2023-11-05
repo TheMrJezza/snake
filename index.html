@@ -26,10 +26,14 @@
             height: 804px;
             background: lightgray;
         }
+
+        button {
+            padding: 10px 30px;
+        }
     </style>
 </head>
 <body class="flex">
-<section class="flex" style="flex-direction: row; justify-content:space-evenly; width: 800px; height: 30px;">
+<section class="flex" style="flex-direction: row; justify-content:space-evenly; width: 800px; height: 60px;">
     <section class="flex" style="flex-direction: row; gap: 5px;">
         <label for="speed-slide">Speed</label>
         <input type="range" name="speed" id="speed-slide" list="markers">
@@ -41,6 +45,7 @@
             <option value="100"></option>
         </datalist>
     </section>
+    <button>Restart</button>
     <section>SCORE: <span id="score-display">0</span></section>
 </section>
 <div class="flex">
@@ -81,6 +86,19 @@
     let food = {x: Math.floor(Math.random() * tilesSQ), y: Math.floor(Math.random() * tilesSQ)};
     let lock = false;
     let tick = -1;
+
+    function reset() {
+        ctx.fillStyle = "whitesmoke";
+        for (let x = 0; x < tilesSQ; ++x) for (let y = 0; y < tilesSQ; ++y) fillSquare(x, y);
+        tick = -1;
+        lock = false;
+        poX = Math.floor(tilesSQ / 2);
+        poY = Math.floor(tilesSQ / 2);
+        maxLength = 4;
+        consumedDirection = "EAST";
+        requestedDirection = "EAST";
+        history = [];
+    }
 
     function drawFood(food) {
         ctx.beginPath();
@@ -173,5 +191,9 @@
     });
 
     window.requestAnimationFrame(draw);
+    document.querySelector('button').addEventListener('click', (event) => {
+        reset();
+        event.target.blur();
+    });
 </script>
 </html>
