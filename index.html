@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake</title>
+    <style>
+        .flex {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        body {
+            height: 100vh;
+        }
+
+        * {
+            padding: 0;
+            margin: 0;
+        }
+
+        div {
+            width: 804px;
+            height: 804px;
+            background: lightgray;
+        }
+    </style>
+</head>
+<body class="flex">
+<section class="flex" style="flex-direction: row; justify-content:space-evenly; width: 800px; height: 30px;">
+    <section class="flex" style="flex-direction: row; gap: 5px;">
+        <label for="speed-slide">Speed</label>
+        <input type="range" name="speed" id="speed-slide" list="markers">
+        <datalist id="markers">
+            <option value="0"></option>
+            <option value="25"></option>
+            <option value="50"></option>
+            <option value="75"></option>
+            <option value="100"></option>
+        </datalist>
+    </section>
+    <section>SCORE: <span id="score-display">0</span></section>
+</section>
+<div class="flex">
+    <canvas width="800" height="800"></canvas>
+</div>
+</body>
+<script defer>
+    const canvas = document.querySelector('canvas');
+    const ctx = canvas.getContext("2d");
+    const speedSlider = document.querySelector('#speed-slide');
+    const scoreDisplay = document.querySelector('#score-display');
+
+    const tilesSQ = 21, lineWidth = 1, error = lineWidth * tilesSQ + lineWidth,
+        tileSize = (canvas.width - error) / tilesSQ;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = "lightgray";
+
+    function fillSquare(x, y) {
+        ctx.save();
+        x = x * tileSize + x * lineWidth + lineWidth / 2;
+        y = y * tileSize + y * lineWidth + lineWidth / 2;
+        ctx.fillRect(x + lineWidth, y + lineWidth, tileSize - lineWidth, tileSize - lineWidth);
+        ctx.strokeRect(x + lineWidth, y + lineWidth, tileSize - lineWidth, tileSize - lineWidth);
+        ctx.restore();
+    }
+
+    ctx.fillStyle = "whitesmoke";
+    for (let x = 0; x < tilesSQ; ++x) for (let y = 0; y < tilesSQ; ++y) fillSquare(x, y);
+
+    let history = [];
+    let maxLength = 4;
+    let consumedDirection = "EAST";
+    let requestedDirection = "EAST";
+
+    let poX = Math.floor(tilesSQ / 2);
+    let poY = Math.floor(tilesSQ / 2);
+
+    let food = {x: Math.floor(Math.random() * tilesSQ), y: Math.floor(Math.random() * tilesSQ)};
+    let lock = false;
+    let tick = -1;
+
+    function drawFood(food) {
+        ctx.beginPath();
+        ctx.arc((food.x * tileSize + food.x * lineWidth) + tileSize / 2 + lineWidth, (food.y * tileSize + food.y * lineWidth) + tileSize / 2 + lineWidth, 10, 0, 2 * Math.PI);
+        ctx.fillStyle = "blue";
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    function draw(time) {
+        let speed = 200 - (150 * (speedSlider.value / 100));
+        let now = Math.floor(time / speed);
+        if (now !== tick && !lock) {
+            tick = now;
+            history.unshift({x: poX, y: poY});
+
+            consumedDirection = (
+                (requestedDirection === "EAST" && consumedDirection === "WEST") ||
+                (requestedDirection === "WEST" && consumedDirection === "EAST") ||
+                (requestedDirection === "NORTH" && consumedDirection === "SOUTH") ||
+                (requestedDirection === "SOUTH" && consumedDirection === "NORTH")
+            ) ? consumedDirection : requestedDirection;
+
+            let addY;
+            let addX;
+
+            if (consumedDirection === "EAST") {
+                addX = 1;
+                addY = 0;
+            } else if (consumedDirection === "WEST") {
+                addX = -1;
+                addY = 0;
+            } else if (consumedDirection === "NORTH") {
+                addX = 0;
+                addY = -1;
+            } else if (consumedDirection === "SOUTH") {
+                addX = 0;
+                addY = 1;
+            }
+
+            poX = (tilesSQ + poX + addX) % tilesSQ;
+            poY = (tilesSQ + poY + addY) % tilesSQ;
+
+            let found = history.find(entry => entry.x === poX && entry.y === poY);
+            let last = history[history.length - 1];
+            if (found && last && (found.x !== last.x || found.y !== last.y)) return;
+
+            if (history.length >= maxLength) {
+                let last = history.pop();
+                ctx.fillStyle = "whitesmoke";
+                fillSquare(last.x, last.y);
+            }
+
+            ctx.fillStyle = "lime";
+            last = history[0];
+            fillSquare(last.x, last.y);
+
+            ctx.fillStyle = "red";
+            fillSquare(poX, poY);
+
+            if (food.x === poX && food.y === poY) {
+                food = {x: Math.floor(Math.random() * tilesSQ), y: Math.floor(Math.random() * tilesSQ)};
+                scoreDisplay.textContent = `${parseInt(scoreDisplay.textContent) + 1}`;
+                maxLength++;
+            }
+
+            drawFood(food);
+            ctx.stroke();
+        }
+        requestAnimationFrame(draw);
+    }
+
+    document.addEventListener('keydown', (keyboardEvent) => {
+        let nextDirection;
+        if (keyboardEvent.key === "ArrowUp") nextDirection = "NORTH";
+        else if (keyboardEvent.key === "ArrowDown") nextDirection = "SOUTH";
+        else if (keyboardEvent.key === "ArrowLeft") nextDirection = "WEST";
+        else if (keyboardEvent.key === "ArrowRight") nextDirection = "EAST";
+        else return;
+        if (nextDirection !== requestedDirection) requestedDirection = nextDirection;
+    });
+
+    speedSlider.addEventListener("mousedown", () => {
+        lock = true;
+    });
+
+    window.addEventListener("mouseup", () => {
+        lock = false;
+        speedSlider.blur();
+    });
+
+    window.requestAnimationFrame(draw);
+</script>
+</html>
